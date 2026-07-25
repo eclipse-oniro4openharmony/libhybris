@@ -58,10 +58,11 @@ static int OhosFormatToAndroid(uint32_t ohosFormat)
 /* ─── Import native handle from BufferHandle into the current process ───────
  * BufferHandle fds are duped by the OHOS IPC layer before reaching this
  * process, so bh.fd / bh.reserve[0..reserveFds-1] are valid fds here.
- * We reconstruct a raw native_handle_t (excluding the last two int slots that
- * hybris_buffer_vdi_impl uses to store a process-local pointer) and call
- * hybris_gralloc_import_buffer so the Mali GPU driver can access the
- * DMA-buf in this process via ANativeWindowBuffer::handle.
+ * We reconstruct a raw native_handle_t (excluding the trailing bookkeeping
+ * slots that hybris_buffer_vdi_impl appends to record the process-local
+ * pointer and its owning pid) and call hybris_gralloc_import_buffer so the
+ * Mali GPU driver can access the DMA-buf in this process via
+ * ANativeWindowBuffer::handle.
  */
 #include <hilog/log.h>
 
@@ -70,7 +71,15 @@ static int OhosFormatToAndroid(uint32_t ohosFormat)
 #define LOG_DOMAIN 0xD001400
 #define LOG_TAG "HybrisOhosWin"
 
-static constexpr int kPtrSlots = 2; /* int slots reserved for process-local ptr in reserve[] */
+/*
+ * Trailing int slots that hybris_buffer_vdi_impl appends to reserve[] for its
+ * own bookkeeping: the process-local buffer_handle_t pointer (2 slots), the
+ * pid that pointer belongs to, and how that process obtained it.  They are not
+ * part of the native_handle and must be excluded when rebuilding it.
+ * Keep in sync with kPtrSlots in
+ * device/soc/oniro/hybris_generic/hardware/display/include/hybris_buffer_layout.h
+ */
+static constexpr int kPtrSlots = 4;
 
 /* ─── Global OHNativeWindowBuffer* → OhosNativeWindowBuffer* lookup ─────────
  * Used by eglplatformcommon_passthroughImageKHR to translate the raw OHOS
