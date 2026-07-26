@@ -373,11 +373,33 @@ EGLDisplay eglGetPlatformDisplay(EGLenum platform,
 	return dpy;
 }
 
+/*
+ * The vendor EGL implementation lives in the Android container, whose graphics
+ * services only register a few seconds after the early host processes start,
+ * and eglInitialize fails outright until they do.  A client that tries once and
+ * gives up then runs for its entire lifetime without a GPU even though EGL
+ * would have succeeded moments later, so absorb that startup window here
+ * instead of making every caller implement its own retry.
+ */
+#define HYBRIS_EGL_INIT_RETRY_LIMIT       40
+#define HYBRIS_EGL_INIT_RETRY_INTERVAL_US (500 * 1000)
+
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
 	HiLogPrint(LOG_CORE, LOG_INFO, LOG_DOMAIN, LOG_TAG, "eglInitialize(%p) enter", (void*)dpy);
 	HYBRIS_DLSYSM(egl, &_eglInitialize, "eglInitialize");
-	EGLBoolean ret = _eglInitialize(dpy, major, minor);
+	EGLBoolean ret = EGL_FALSE;
+	for (int attempt = 0; attempt < HYBRIS_EGL_INIT_RETRY_LIMIT; attempt++) {
+		ret = _eglInitialize(dpy, major, minor);
+		if (ret) {
+			if (attempt > 0)
+				HiLogPrint(LOG_CORE, LOG_INFO, LOG_DOMAIN, LOG_TAG,
+					   "eglInitialize(%p) succeeded after %d retries",
+					   (void*)dpy, attempt);
+			break;
+		}
+		usleep(HYBRIS_EGL_INIT_RETRY_INTERVAL_US);
+	}
 	if (ret) {
 		struct _EGLDisplay *display = hybris_egl_display_get_mapping(dpy);
 		ws_eglInitialized(display);

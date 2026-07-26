@@ -22,6 +22,8 @@
 
 #include <GLES2/gl2ext.h>
 
+#include <EGL/egl.h>
+
 #include <dlfcn.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -104,7 +106,26 @@ HYBRIS_IMPLEMENT_VOID_FUNCTION3(glesv2, glGetShaderiv, GLuint, GLenum, GLint *);
 HYBRIS_IMPLEMENT_VOID_FUNCTION4(glesv2, glGetShaderInfoLog, GLuint, GLsizei, GLsizei *, GLchar *);
 HYBRIS_IMPLEMENT_VOID_FUNCTION4(glesv2, glGetShaderPrecisionFormat, GLenum, GLenum, GLint *, GLint *);
 HYBRIS_IMPLEMENT_VOID_FUNCTION4(glesv2, glGetShaderSource, GLuint, GLsizei, GLsizei *, GLchar *);
-HYBRIS_IMPLEMENT_FUNCTION1(glesv2, const GLubyte *, glGetString, GLenum);
+/*
+ * glGetString is the one GLES entry point callers routinely reach before they
+ * have a context — Skia and similar libraries call it while assembling their GL
+ * interface.  Android's libGLESv2 exports it as a dispatch stub that looks the
+ * current context up through bionic's TLS slots; with no context current that
+ * lookup lands on a host TLS layout it does not understand and segfaults rather
+ * than returning an error.  GLES specifies NULL for a query with no current
+ * context, so answer that ourselves instead of calling through.  Only worth
+ * doing for cold-path queries: guarding every entry point would put a check on
+ * the whole drawing hot path.
+ */
+const GLubyte *glGetString(GLenum name)
+{
+    if (eglGetCurrentContext() == EGL_NO_CONTEXT)
+        return NULL;
+
+    static const GLubyte *(*f)(GLenum) FP_ATTRIB = NULL;
+    HYBRIS_DLSYSM(glesv2, &f, "glGetString");
+    return f(name);
+}
 HYBRIS_IMPLEMENT_VOID_FUNCTION3(glesv2, glGetTexParameterfv, GLenum, GLenum, GLfloat *);
 HYBRIS_IMPLEMENT_VOID_FUNCTION3(glesv2, glGetTexParameteriv, GLenum, GLenum, GLint *);
 HYBRIS_IMPLEMENT_VOID_FUNCTION3(glesv2, glGetUniformfv, GLuint, GLint, GLfloat *);
