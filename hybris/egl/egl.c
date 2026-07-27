@@ -60,6 +60,10 @@ static void *egl_handle = NULL;
 static void *glesv2_handle = NULL;
 static void *_hybris_libgles1 = NULL;
 static void *_hybris_libgles2 = NULL;
+/* Cache dlopen failures: without these a missing GLES library is re-tried
+ * (two linker namespace searches) on every eglGetProcAddress call. */
+static int _hybris_libgles1_tried = 0;
+static int _hybris_libgles2_tried = 0;
 static int _egl_context_client_version = 1;
 
 /*
@@ -786,7 +790,8 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
 
 	switch (_egl_context_client_version) {
 		case 1:  // OpenGL ES 1.x API
-			if (_hybris_libgles1 == NULL) {
+			if (_hybris_libgles1 == NULL && !_hybris_libgles1_tried) {
+				_hybris_libgles1_tried = 1;
 				_hybris_libgles1 = (void *) dlopen(
 					getenv("HYBRIS_LIBGLESV1") ?: "libGLESv1_CM" GL_LIB_SUFFIX ".so.1",
 					RTLD_LOCAL | RTLD_LAZY);
@@ -795,7 +800,8 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *procname)
 			break;
 		case 2:  // OpenGL ES 2.0 API
 		case 3:  // OpenGL ES 3.x API, backwards compatible with OpenGL ES 2.0 so we implement in same library
-			if (_hybris_libgles2 == NULL) {
+			if (_hybris_libgles2 == NULL && !_hybris_libgles2_tried) {
+				_hybris_libgles2_tried = 1;
 				_hybris_libgles2 = (void *) dlopen(
 					getenv("HYBRIS_LIBGLESV2") ?: "libGLESv2" GL_LIB_SUFFIX ".so.2",
 					RTLD_LOCAL | RTLD_LAZY);
