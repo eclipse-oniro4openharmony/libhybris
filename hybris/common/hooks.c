@@ -2422,6 +2422,32 @@ struct open_redirect open_redirects[] = {
     { "/system/lib64/egl", "/android/system/lib64/egl" },
     { "/vendor/lib/egl", "/android/vendor/lib/egl" },
     { "/system/lib/egl", "/android/system/lib/egl" },
+    /*
+     * Audio HAL configuration.  The Android audio HAL and its parameter
+     * parser open absolute /vendor paths (audio_param/, audio_device.xml,
+     * aurisys_config*.xml, smartpa_param/, …) that on this port belong to the
+     * host OS instead.  These redirects only affect bionic-side callers
+     * inside hybris-hosting processes, so OHOS code reading its own
+     * /vendor/etc/audio/ tree is unaffected.
+     */
+    { "/vendor/etc/audio", "/android/vendor/etc/audio" },
+    { "/vendor/etc/aurisys", "/android/vendor/etc/aurisys" },
+    { "/vendor/etc/smartpa", "/android/vendor/etc/smartpa" },
+    { "/vendor/firmware", "/android/vendor/firmware" },
+    { "/odm/etc/audio", "/android/odm/etc/audio" },
+    /* Android's /system/vendor -> /vendor symlink has no counterpart here,
+     * and parts of the MTK audio HAL spell their config paths that way. */
+    { "/system/vendor", "/android/vendor" },
+    /*
+     * Absolute library paths.  _hybris_hook_dlopen already remaps /vendor/
+     * to /android/vendor/, but HALs commonly access()/stat() a plugin before
+     * dlopen()ing it, and without the same remap here that probe fails and
+     * the plugin is silently skipped.  Restricted to the "lib" prefix so the
+     * hw/ and egl/ subdirectories — which are real bind mounts — keep
+     * resolving through the filesystem.
+     */
+    { "/vendor/lib64/lib", "/android/vendor/lib64/lib" },
+    { "/vendor/lib/lib", "/android/vendor/lib/lib" },
     { NULL, NULL }
 };
 
@@ -2432,7 +2458,11 @@ static const char* redirect_path(const char *pathname)
         struct open_redirect *entry = &open_redirects[0];
         while (entry->from != NULL) {
             if (strncmp(pathname, entry->from, strlen(entry->from)) == 0) {
-                static char redirected_path[PATH_MAX];
+                /* thread-local: HAL init routinely resolves paths from
+                 * several threads at once (audio param parser, ADSP IPI
+                 * readers), and a shared buffer would hand them each
+                 * other's paths. */
+                static __thread char redirected_path[PATH_MAX];
                 snprintf(redirected_path, sizeof(redirected_path), "%s%s", 
                         entry->to, pathname + strlen(entry->from));
                 return redirected_path;
@@ -2510,6 +2540,33 @@ int _hybris_hook_fstatat(int dirfd, const char *pathname, struct stat *statbuf, 
     const char *target_path = redirect_path(pathname);
     TRACE_HOOK("dirfd %d pathname '%s' -> '%s' flags %d", dirfd, pathname, target_path, flags);
     return fstatat(dirfd, target_path, statbuf, flags);
+}
+
+/*
+ * stdio/dirent entry points also have to honour open_redirects: Android HALs
+ * routinely reach their config trees through fopen() and opendir() rather than
+ * open(), and a redirect that only covers the raw syscalls leaves them staring
+ * at the host OS's directories instead.
+ */
+FILE *_hybris_hook_fopen(const char *pathname, const char *mode)
+{
+    const char *target_path = redirect_path(pathname);
+    TRACE_HOOK("pathname '%s' -> '%s' mode '%s'", pathname, target_path, mode);
+    return fopen(target_path, mode);
+}
+
+FILE *_hybris_hook_fopen64(const char *pathname, const char *mode)
+{
+    const char *target_path = redirect_path(pathname);
+    TRACE_HOOK("pathname '%s' -> '%s' mode '%s'", pathname, target_path, mode);
+    return fopen64(target_path, mode);
+}
+
+DIR *_hybris_hook_opendir(const char *pathname)
+{
+    const char *target_path = redirect_path(pathname);
+    TRACE_HOOK("pathname '%s' -> '%s'", pathname, target_path);
+    return opendir(target_path);
 }
 
 
@@ -3458,7 +3515,7 @@ static struct _hook hooks_common[] = {
     /* stdio.h */
     HOOK_TO(__isthreaded, &_hybris_hook___isthreaded),
     HOOK_TO(__sF, _hybris_hook_sF),
-    HOOK_DIRECT_NO_DEBUG(fopen),
+    HOOK_INDIRECT(fopen),
     HOOK_DIRECT_NO_DEBUG(fdopen),
     HOOK_DIRECT_NO_DEBUG(popen),
     HOOK_DIRECT_NO_DEBUG(puts),
@@ -3550,7 +3607,7 @@ static struct _hook hooks_common[] = {
     HOOK_INDIRECT(__loader_shared_globals),
 #endif
     /* dirent.h */
-    HOOK_DIRECT_NO_DEBUG(opendir),
+    HOOK_INDIRECT(opendir),
     HOOK_DIRECT_NO_DEBUG(fdopendir),
     HOOK_DIRECT_NO_DEBUG(closedir),
     HOOK_DIRECT_NO_DEBUG(__fsetlocking),
@@ -3739,7 +3796,7 @@ static struct _hook hooks_n[] = {
     HOOK_INDIRECT(fsetpos64),
     HOOK_INDIRECT(fseeko64),
     HOOK_INDIRECT(ftello64),
-    HOOK_DIRECT_NO_DEBUG(fopen64),
+    HOOK_INDIRECT(fopen64),
     HOOK_INDIRECT(freopen64),
     HOOK_INDIRECT(fileno_unlocked),
 #ifdef __GLIBC__
