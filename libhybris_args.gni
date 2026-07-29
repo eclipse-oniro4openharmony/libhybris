@@ -40,13 +40,14 @@ declare_args() {
 }
 
 # Default library paths for Android libraries.
-# The VNDK apex path serves Android-14 (Halium 14) vendors: vendor blobs
+# The APEX paths serve Android-14 (Halium 14) vendors: vendor blobs
 # (e.g. the ansuz Mali DDK) link against VNDK/NDK stub libs that live in
 # /apex/com.android.vndk.v34/lib64, which the OHOS-side chainload exposes
-# via the halium_apex partition.  On pre-14 vendors (X23/Halium 12) the
-# directory simply doesn't exist and the linker skips it.
+# via the halium_apex partition.  com.android.i18n carries libandroidicu,
+# a NEEDED of the MTK audio HAL.  On pre-14 vendors (X23/Halium 12) the
+# directories simply don't exist and the linker skips them.
 if (hybris_arch == "arm" || hybris_arch == "x86") {
-  hybris_default_ld_library_path = "/android/vendor/lib:/android/vendor/lib/hw:/android/system/lib:/android/odm/lib:/apex/com.android.vndk.v34/lib"
+  hybris_default_ld_library_path = "/android/vendor/lib:/android/vendor/lib/hw:/android/system/lib:/android/odm/lib:/apex/com.android.vndk.v34/lib:/apex/com.android.i18n/lib"
 } else {
-  hybris_default_ld_library_path = "/android/vendor/lib64:/android/vendor/lib64/hw:/android/system/lib64:/android/odm/lib64:/apex/com.android.vndk.v34/lib64"
+  hybris_default_ld_library_path = "/android/vendor/lib64:/android/vendor/lib64/hw:/android/system/lib64:/android/odm/lib64:/apex/com.android.vndk.v34/lib64:/apex/com.android.i18n/lib64"
 }
