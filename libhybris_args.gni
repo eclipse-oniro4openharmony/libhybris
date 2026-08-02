@@ -35,8 +35,23 @@ declare_args() {
   # Architecture selection (arm, arm64, x86, x86-64)
   hybris_arch = "arm64"
   
-  # Default EGL platform
-  hybris_default_egl_platform = "hwcomposer"
+  # Default EGL platform.  On OHOS every EGL consumer (render_service,
+  # bootanimation, app processes) uses the ohos ws module; the hwcomposer
+  # platform is only for standalone test tools, which can still select it
+  # via HYBRIS_EGLPLATFORM=hwcomposer.
+  hybris_default_egl_platform = "ohos"
+
+  # Default Android-side EGL/GLESv2 driver, used when the LIBEGL/LIBGLESV2
+  # env vars are unset.  Android's own libEGL.so/libGLESv2.so wrappers can't
+  # be used as a default here: their vendor-driver discovery walks
+  # android-namespace paths (/vendor/lib64/egl via the sphal namespace) that
+  # don't resolve in the OHOS mount namespace, where /vendor is the OHOS
+  # partition and the Android tree lives under /android.  So point straight
+  # at the vendor driver.  Both supported devices (X23 MT6789, ansuz MT6878)
+  # ship the monolithic Mali blob at the same path; a device with a
+  # different driver path can override via env in its init.<device>.cfg.
+  hybris_default_libegl = "/android/vendor/lib64/egl/libGLES_mali.so"
+  hybris_default_libglesv2 = "/android/vendor/lib64/egl/libGLES_mali.so"
 }
 
 # Default library paths for Android libraries.

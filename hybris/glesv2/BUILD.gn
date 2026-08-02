@@ -53,7 +53,9 @@ ohos_shared_library("libGLESv2") {
   sources = [
     "glesv2.c",
   ]
-  
+
+  cflags = [ "-DDEFAULT_LIBGLESV2=\"${hybris_default_libglesv2}\"" ]
+
   # Add Android version-specific bionic headers for dlfcn.h
   configs = []
   if (android_version_major >= 10) {

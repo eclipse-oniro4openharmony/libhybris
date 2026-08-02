@@ -107,10 +107,17 @@ static void (*_glEGLImageTargetRenderbufferStorageOES) (GLenum target, GLeglImag
 
 static __eglMustCastToProperFunctionPointerType (*_eglGetProcAddress)(const char *procname) = NULL;
 
+#ifndef DEFAULT_LIBEGL
+#define DEFAULT_LIBEGL "libEGL.so"
+#endif
+#ifndef DEFAULT_LIBGLESV2
+#define DEFAULT_LIBGLESV2 "libGLESv2.so"
+#endif
+
 static void _init_androidegl()
 {
-	const char *libegl_path = getenv("LIBEGL") ? getenv("LIBEGL") : "libEGL.so";
-	const char *libglesv2_path = getenv("LIBGLESV2") ? getenv("LIBGLESV2") : "libGLESv2.so";
+	const char *libegl_path = getenv("LIBEGL") ? getenv("LIBEGL") : DEFAULT_LIBEGL;
+	const char *libglesv2_path = getenv("LIBGLESV2") ? getenv("LIBGLESV2") : DEFAULT_LIBGLESV2;
 	HILOG_INFO(LOG_CORE, "HybrisEGL: _init_androidegl LIBEGL=%{public}s", libegl_path);
 
 	/* DIAG: test OHOS musl open() to confirm /android is accessible in sandbox */

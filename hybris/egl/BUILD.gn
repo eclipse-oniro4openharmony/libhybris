@@ -115,11 +115,15 @@ ohos_shared_library("libEGL") {
   cflags = [
     "-DPKGLIBDIR=\"/system/lib64/libhybris\"",
     "-DDEFAULT_EGL_PLATFORM=\"${hybris_default_egl_platform}\"",
+    "-DDEFAULT_LIBEGL=\"${hybris_default_libegl}\"",
+    "-DDEFAULT_LIBGLESV2=\"${hybris_default_libglesv2}\"",
   ]
-  
+
   cflags_cc = [
     "-DPKGLIBDIR=\"/system/lib64/libhybris\"",
     "-DDEFAULT_EGL_PLATFORM=\"${hybris_default_egl_platform}\"",
+    "-DDEFAULT_LIBEGL=\"${hybris_default_libegl}\"",
+    "-DDEFAULT_LIBGLESV2=\"${hybris_default_libglesv2}\"",
   ]
   
   # Add Mesa headers support if enabled

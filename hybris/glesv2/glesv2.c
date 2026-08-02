@@ -32,8 +32,12 @@
 
 #include "../egl/ws.h"
 
+#ifndef DEFAULT_LIBGLESV2
+#define DEFAULT_LIBGLESV2 "libGLESv2.so"
+#endif
+
 // Android always uses libGLESv2.so for both OpenGL ES 2.0 and OpenGL ES 3.x
-HYBRIS_LIBRARY_INITIALIZE(glesv2, getenv("LIBGLESV2") ? getenv("LIBGLESV2") : "libGLESv2.so");
+HYBRIS_LIBRARY_INITIALIZE(glesv2, getenv("LIBGLESV2") ? getenv("LIBGLESV2") : DEFAULT_LIBGLESV2);
 
 HYBRIS_IMPLEMENT_VOID_FUNCTION1(glesv2, glActiveTexture, GLenum);
 HYBRIS_IMPLEMENT_VOID_FUNCTION2(glesv2, glAttachShader, GLuint, GLuint);
