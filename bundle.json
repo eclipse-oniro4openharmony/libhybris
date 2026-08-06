@@ -2,7 +2,7 @@
     "name": "@ohos/libhybris",
     "description": "libhybris allows to use bionic-based HW adaptations in glibc systems",
     "version": "3.0",
-    "license": "Apache-2.0 AND LGPL-2.1",
+    "license": "Apache-2.0 AND BSD-2-Clause AND ISC AND MIT",
     "publishAs": "code-segment",
     "segment": {
         "destPath": "third_party/libhybris"

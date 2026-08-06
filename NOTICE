@@ -1,0 +1,82 @@
+# Notices for Eclipse Oniro for OpenHarmony — libhybris
+
+This repository is a fork of the upstream [libhybris](https://github.com/libhybris/libhybris)
+project, maintained at the Eclipse Foundation as part of Eclipse Oniro for
+OpenHarmony. It carries the OpenHarmony adaptation of libhybris: an OHOS GN
+build, an `ohos` EGL platform backend, and bring-up fixes for running
+bionic-based vendor HAL binaries under OHOS musl.
+
+* https://projects.eclipse.org/projects/oniro.oniro4openharmony
+
+## Source Code
+
+* https://github.com/eclipse-oniro4openharmony/libhybris
+* Upstream: https://github.com/libhybris/libhybris
+
+## Copyright
+
+All content is the property of the respective authors or their employers. For
+more information regarding authorship of content, please consult the listed
+source code repository logs. The overwhelming majority of this repository is
+upstream libhybris and Android Open Source Project content; the Eclipse Oniro
+contributions sit as commits on top of the upstream history.
+
+## Declared Project License
+
+Contributions made by this project are available under the terms of the Apache
+License, Version 2.0, which is available at
+https://www.apache.org/licenses/LICENSE-2.0.
+
+    SPDX-License-Identifier: Apache-2.0
+
+Inherited content keeps its own licence — see below. This repository has no
+single project-wide licence file for that reason; the applicable licence texts
+are shipped alongside as `LICENSE.Apache2`, `LICENSE.BSD-2`, `LICENSE.BSD-3`,
+`LICENSE.BSD-4`, `LICENSE.GPL3`, `LICENSE.ISC`, `LICENSE.LGPLv21` and
+`LICENSE.MIT`, inherited from upstream.
+
+## Third-party Content
+
+### What the OpenHarmony build produces
+
+The OHOS component declared in `bundle.json` builds the targets reachable from
+`group("libhybris")`. That set is **109 source files** and is free of copyleft
+content:
+
+| Licence | Files | Principal holders |
+|---|---|---|
+| BSD-2-Clause | 56 | The Android Open Source Project (bionic linker and headers) |
+| Apache-2.0 | 49 | libhybris contributors, The Android Open Source Project |
+| ISC | 2 | libhybris contributors |
+| MIT | 1 | libhybris contributors |
+
+`bundle.json` therefore declares:
+
+    Apache-2.0 AND BSD-2-Clause AND ISC AND MIT
+
+### Content present in the tree but NOT built for OpenHarmony
+
+The fork keeps upstream's full source tree, which includes platform backends
+that OpenHarmony does not use. These are **not** referenced by any `BUILD.gn`
+and are not compiled into, or shipped in, any OpenHarmony image:
+
+* **Wayland platform backends — LGPL-2.1** (7 files):
+  `hybris/platforms/wayland/wayland_window_common.{cpp,h}`,
+  `hybris/egl/platforms/wayland/{wayland_window.cpp,wayland_window.h,eglplatform_wayland.cpp}`,
+  `hybris/vulkan/platforms/wayland/{wayland_window.cpp,wayland_window.h}`.
+  The corresponding `group("libhybris")` dependencies
+  (`hybris/platforms:libhybris-platformcommon`, `hybris/vulkan:libvulkan`) are
+  commented out.
+* Other upstream backends left unbuilt for the same reason: camera, media,
+  input, sf, ui, wifi, vibrator, OpenCL, Vulkan, NFC.
+* `LICENSE.GPL3` and `LICENSE.BSD-4` are inherited upstream licence texts. No
+  source file in this repository declares either licence.
+
+Anyone building the Wayland or Vulkan backends from this tree takes on the
+LGPL-2.1 obligations that the OpenHarmony build does not incur.
+
+### Android Open Source Project
+
+* Files: `hybris/common/` (bionic linker variants, `jb`/`mm`/`n` and headers)
+* License: BSD-2-Clause, some Apache-2.0
+* Project: https://source.android.com/
