@@ -53,7 +53,17 @@ declare_args() {
   # different driver path can override via env in its init.<device>.cfg.
   hybris_default_libegl = "/android/vendor/lib64/egl/libGLES_mali.so"
   hybris_default_libglesv2 = "/android/vendor/lib64/egl/libGLES_mali.so"
+
+  # Product-settable alias for hybris_enable_wayland.  A product declares
+  # its gn args through its config.json "features" list, and the loader
+  # requires every feature name to start with the part name
+  # ("libhybris_"), which the upstream arg above does not — so products
+  # set this one instead.  Either being true builds the wayland bits.
+  libhybris_enable_wayland = false
 }
+
+# Effective wayland switch: the upstream arg OR the product feature.
+hybris_wayland_enabled = hybris_enable_wayland || libhybris_enable_wayland
 
 # Default library paths for Android libraries.
 # The APEX paths serve Android-14 (Halium 14) vendors: vendor blobs

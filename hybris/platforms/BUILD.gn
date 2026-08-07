@@ -23,12 +23,17 @@ ohos_shared_library("libhybris-platformcommon") {
     "common/windowbuffer.cpp",
   ]
 
-  if (hybris_enable_wayland) {
+  # The server side of the android_wlegl protocol.  Its generated
+  # protocol code (wayland-android-protocol.c + the -server-protocol.h
+  # header included by these sources) lives in //third_party/wayland,
+  # pregenerated from this directory's wayland-android.xml — see that
+  # component's regenerate.sh.
+  if (hybris_wayland_enabled) {
     sources += [
       "common/server_wlegl.cpp",
       "common/server_wlegl_buffer.cpp",
       "common/server_wlegl_handle.cpp",
-      "common/wayland-android-protocol.c",
+      "//third_party/wayland/generated/wayland-android-protocol.c",
     ]
   }
 
@@ -60,7 +65,12 @@ ohos_shared_library("libhybris-platformcommon") {
     cflags += [ "-DLIBHYBRIS_WANTS_MESA_X11_HEADERS" ]
     cflags_cc += [ "-DLIBHYBRIS_WANTS_MESA_X11_HEADERS" ]
   }
-  
+
+  if (hybris_wayland_enabled) {
+    cflags += [ "-DWANT_WAYLAND" ]
+    cflags_cc += [ "-DWANT_WAYLAND" ]
+  }
+
   deps = [
     "../common:libhybris-common",
     "../gralloc:libgralloc",
@@ -74,10 +84,9 @@ ohos_shared_library("libhybris-platformcommon") {
     deps += [ "../libsync:libsync" ]
   }
   
-  # Add wayland dependencies if enabled (matches Makefile.am WANT_WAYLAND section)
-  if (hybris_enable_wayland) {
-    # Note: External wayland dependencies would be added here if available
-    # external_deps += [ "wayland-client", "wayland-server" ]
+  # Wayland deps (matches Makefile.am's WANT_WAYLAND section)
+  if (hybris_wayland_enabled) {
+    external_deps += [ "wayland:libwayland_server" ]
   }
   
   # Library versioning info (matching -version-info "1":"0":"0" in Makefile.am)
