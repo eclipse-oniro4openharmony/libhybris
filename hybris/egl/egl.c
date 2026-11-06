@@ -45,9 +45,7 @@
 #undef TRACE
 #endif
 
-#include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
 #include <string.h>
 #include <pthread.h>
 #include <hilog/log.h>
@@ -119,36 +117,6 @@ static void _init_androidegl()
 	const char *libegl_path = getenv("LIBEGL") ? getenv("LIBEGL") : DEFAULT_LIBEGL;
 	const char *libglesv2_path = getenv("LIBGLESV2") ? getenv("LIBGLESV2") : DEFAULT_LIBGLESV2;
 	HILOG_INFO(LOG_CORE, "HybrisEGL: _init_androidegl LIBEGL=%{public}s", libegl_path);
-
-	/* DIAG: test OHOS musl open() to confirm /android is accessible in sandbox */
-	{
-		int diag_fd = open("/android/system/lib64/liblog.so", O_RDONLY | O_CLOEXEC);
-		if (diag_fd < 0) {
-			HILOG_ERROR(LOG_CORE, "HybrisEGL: DIAG musl open(/android/system/lib64/liblog.so) FAILED errno=%{public}d (%{public}s)",
-				errno, strerror(errno));
-		} else {
-			HILOG_INFO(LOG_CORE, "HybrisEGL: DIAG musl open(/android/system/lib64/liblog.so) OK fd=%{public}d", diag_fd);
-			close(diag_fd);
-		}
-		int diag_fd2 = open("/android/vendor/lib64/egl/libGLES_mali.so", O_RDONLY | O_CLOEXEC);
-		if (diag_fd2 < 0) {
-			HILOG_ERROR(LOG_CORE, "HybrisEGL: DIAG musl open(libGLES_mali.so) FAILED errno=%{public}d (%{public}s)",
-				errno, strerror(errno));
-		} else {
-			HILOG_INFO(LOG_CORE, "HybrisEGL: DIAG musl open(libGLES_mali.so) OK fd=%{public}d", diag_fd2);
-			close(diag_fd2);
-		}
-	}
-
-	/* Quick test: try opening a simple Android library via android_dlopen to diagnose Q linker state */
-	void *test_handle = (void *) android_dlopen("/android/system/lib64/liblog.so", RTLD_LAZY);
-	if (!test_handle) {
-		const char *test_err = android_dlerror();
-		HILOG_ERROR(LOG_CORE, "HybrisEGL: DIAG android_dlopen(liblog.so) FAILED: %{public}s", test_err ? test_err : "(null)");
-	} else {
-		HILOG_INFO(LOG_CORE, "HybrisEGL: DIAG android_dlopen(liblog.so) OK");
-		android_dlclose(test_handle);
-	}
 
 	egl_handle = (void *) android_dlopen(libegl_path, RTLD_LAZY);
 	if (!egl_handle) {
