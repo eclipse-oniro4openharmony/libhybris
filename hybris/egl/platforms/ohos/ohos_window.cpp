@@ -233,6 +233,16 @@ OhosNativeWindowBuffer::~OhosNativeWindowBuffer()
                "~OhosNativeWindowBuffer: done this=%p", this);
 }
 
+/* GET_BUFFER_GEOMETRY writes (int32_t *height, int32_t *width), in that
+ * order (external_window.h, HandleNativeWindowGetBufferGeometry), unlike
+ * SET_BUFFER_GEOMETRY, which takes (width, height).  Go through this
+ * helper so the order cannot be mixed up again: passing (&width, &height)
+ * made every non-square window report a transposed EGL_WIDTH/EGL_HEIGHT. */
+static int GetWindowGeometry(NativeWindow *window, int32_t *width, int32_t *height)
+{
+    return NativeWindowHandleOpt(window, GET_BUFFER_GEOMETRY, height, width);
+}
+
 /* ─── OhosNativeWindow ───────────────────────────────────────────────────── */
 
 OhosNativeWindow::OhosNativeWindow(NativeWindow *nativeWindow)
@@ -253,7 +263,7 @@ OhosNativeWindow::OhosNativeWindow(NativeWindow *nativeWindow)
         NativeObjectReference(nativeWindow);
 
         int32_t width, height;
-        if (NativeWindowHandleOpt(nativeWindow, GET_BUFFER_GEOMETRY, &width, &height) == 0) {
+        if (GetWindowGeometry(nativeWindow, &width, &height) == 0) {
             m_width = width;
             m_height = height;
         }
@@ -380,9 +390,10 @@ int OhosNativeWindow::dequeueBuffer(BaseNativeWindowBuffer** buffer, int* fenceF
          * Mali's surface state (EGL_WIDTH/EGL_HEIGHT/buffer-age bookkeeping)
          * and breaks Chromium's partial redraw — stale frames flicker on
          * screen.  Only in that degenerate case, trust the actual
-         * BufferHandle dimensions.  (Never second-guess a real geometry the
-         * client set explicitly — render_service intentionally runs with
-         * window geometry transposed relative to its pre-rotated buffers.) */
+         * BufferHandle dimensions.  Never second-guess a real geometry the
+         * client set explicitly.  (render_service used to look as if it ran
+         * with a transposed window geometry; that was most likely the
+         * swapped GET_BUFFER_GEOMETRY arguments fixed in GetWindowGeometry.) */
         if (m_width <= 1 && m_height <= 1 &&
             wrapper->ANativeWindowBuffer::width > 1 && wrapper->ANativeWindowBuffer::height > 1) {
             HiLogPrint(LOG_CORE, LOG_WARN, LOG_DOMAIN, LOG_TAG,
@@ -723,7 +734,7 @@ unsigned int OhosNativeWindow::width() const
 {
     if (m_width == 0 && m_nativeWindow) {
         int32_t w = 0, h = 0;
-        if (NativeWindowHandleOpt(m_nativeWindow, GET_BUFFER_GEOMETRY, &w, &h) == 0 && w > 0) {
+        if (GetWindowGeometry(m_nativeWindow, &w, &h) == 0 && w > 0) {
             const_cast<OhosNativeWindow*>(this)->updateGeometry(w, h);
         }
     }
@@ -735,7 +746,7 @@ unsigned int OhosNativeWindow::height() const
 {
     if (m_height == 0 && m_nativeWindow) {
         int32_t w = 0, h = 0;
-        if (NativeWindowHandleOpt(m_nativeWindow, GET_BUFFER_GEOMETRY, &w, &h) == 0 && h > 0) {
+        if (GetWindowGeometry(m_nativeWindow, &w, &h) == 0 && h > 0) {
             const_cast<OhosNativeWindow*>(this)->updateGeometry(w, h);
         }
     }
